@@ -1,0 +1,28 @@
+{
+    "name": "creakiwi/yaml-fixtures",
+    "type": "library",
+    "description": "Symfony YamlFixtures",
+    "keywords": ["Persistence", "Fixture"],
+    "homepage": "https://github.com/creakiwi/YamlFixtures",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Hubert PHP",
+            "email": "hubert@creakiwi.com"
+        },
+        {
+            "name": "Alexandre ANDRE",
+            "email": "alexandre@creakiwi.com"
+        }
+    ],
+    "require": {
+        "symfony/yaml": "~2.5",
+        "doctrine/doctrine-fixtures-bundle": "~2.2"
+    },
+    "autoload": {
+        "psr-0": {
+            "Creakiwi\\Component\\YamlFixtures": ""
+        }
+    },
+    "target-dir": "Creakiwi/Component/YamlFixtures"
+}
