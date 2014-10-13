@@ -83,13 +83,13 @@ Note that instead of the key value identification for each root elements, you co
 
 In this example I will only present a Many-to-One relationship since it's the same as the One-to-One behavior for us here (it is the ORM job to check the One-to-One particularity)
 
-We will now add a Comment entity (allowing users to add a comment) with an two fields :
+We will now add a Comment entity (allowing users to add a comment) with two fields :
 * owner : a M2O relationship with User
 * comment : the content of the comment
 Furthermore, we assume that the entity is already created with the good parameters to handle relationship. Something like :
-id : Auto generated, we don't need it here
-owner (User commenting)
-comment : text
+* id : Auto generated, we don't need it here
+* owner (User commenting)
+* comment : text
 
 Let's write the class :
     // src/Acme/DemoBundle/DataFixtures/ORM
@@ -137,13 +137,15 @@ And the fixtures :
         description: "Boo !!!!"
         @owner: user-foo
 
-The concept is the following, to make understand that owner is a relationship, you have to prefix it with the "@" character.
+The concept is the following, to make YamlFixture understand that owner is a relationship, you have to prefix it with the "@" character.
 But, to link it to some entity, you need to know which one, this is the purpose of the getReferencePrefix() method, and then you need the key of the entity.
-To resume : @field: referencePrefix-entityKey
+To resume :
+
+@field: referencePrefix-entityKey
 
 ### 3. Many-to-Many usage example
 
-This part will be quick since you can understand the mechanism, istead of a single string on a relationship, you can use a list.
+This part will be quick since you understand the mechanism, instead of a single string on a relationship, you can use a list.
 
 We now have a Tag entity related to comments by Many-to-Many relationship.
 We assume that you have the Tag entity created with correct parameters as well as the LoadTagData.
@@ -182,4 +184,4 @@ Fixtures:
             - tag-tag1
             - tag-tag3
 
-The only thing to know about the many-to-many relationship is that it is not pluralized, you have to let it in it's singular context, the YamlFixture will use the "add" method.
+The only thing to know about the many-to-many relationship is that it is not pluralized, you have to let it singular, the YamlFixture will use the "add" method.
