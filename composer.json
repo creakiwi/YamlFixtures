@@ -1,7 +1,7 @@
 {
     "name": "creakiwi/yaml-fixtures",
     "type": "library",
-    "description": "Symfony YamlFixtures",
+    "description": "Symfony YamlFixtures on top of DoctrineFixturesBundle",
     "keywords": ["Persistence", "Fixture"],
     "homepage": "https://github.com/creakiwi/YamlFixtures",
     "license": "MIT",
