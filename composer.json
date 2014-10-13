@@ -21,8 +21,8 @@
     },
     "autoload": {
         "psr-0": {
-            "Creakiwi\\Component\\YamlFixtures": ""
+            "Ck\\Component\\YamlFixtures": ""
         }
     },
-    "target-dir": "Creakiwi/Component/YamlFixtures"
+    "target-dir": "Ck/Component/YamlFixtures"
 }
