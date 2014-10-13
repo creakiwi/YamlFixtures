@@ -20,6 +20,7 @@ Let's say you have a unique entity User composed of the following fields :
 * email
 
 First of all, you have to extends the YamlFixtures class :
+
     // src/Acme/DemoBundle/DataFixtures/ORM
     <?php
     
@@ -37,7 +38,7 @@ First of all, you have to extends the YamlFixtures class :
         
         protected function getFilePath()
         {
-            return sprintf('%s/../Fixtures/user.yml', __DIR__);
+            return sprintf('%s/../Fixtures/users.yml', __DIR__);
         }
         
         protected function getReferencePrefix()
@@ -54,15 +55,131 @@ First of all, you have to extends the YamlFixtures class :
 Now, we'll need some yaml fixtures :
 
     # src/Acme/DemoBundle/DataFixtures/Fixtures/users.yml
-    foo:
+    alex:
         username: alex-ception
         email: alexandre@creakiwi.com
     hubert:
         username: %self% # aka "hubert"
         email: hubert@creakiwi.com
-    bar:
-        username: bar@example.com
-        email: %username% # aka "bar@example.com"
-    "baz@example.com":
+    foo:
+        username: foo@example.com
+        email: %username% # aka "foo@example.com"
+    "bar@example.com":
         username: %self%
         email: %self% # or %username% in this case is also possible
+
+And that's it. You can run the standard command to generate your fixtures through DoctrineFixturesBundle.
+
+Note that instead of the key value identification for each root elements, you could use a simple list, but you would loose the ability to use the %self% keywords or managing relationship as we will see later :
+
+    -
+        username: alex-ception
+        email: alexandre@creakiwi.com
+    -
+        username: hubert
+        email: hubert@creakiwi.com
+
+### 2. One-to-One and Many-to-One usage example
+
+In this example I will only present a Many-to-One relationship since it's the same as the One-to-One behavior for us here (it is the ORM job to check the One-to-One particularity)
+
+We will now add a Comment entity (allowing users to add a comment) with an two fields :
+* owner : a M2O relationship with User
+* comment : the content of the comment
+Furthermore, we assume that the entity is already created with the good parameters to handle relationship. Something like :
+id : Auto generated, we don't need it here
+owner (User commenting)
+comment : text
+
+Let's write the class :
+    // src/Acme/DemoBundle/DataFixtures/ORM
+    <?php
+    
+    namespace Acme\DemoBundle\DataFixtures\ORM;
+    
+    use Ck\Component\YamlFixtures\YamlFixture;
+    use Acme\DemoBundle\Entity\Comment;
+    
+    class LoadCommentData extends YamlFixture
+    {
+        protected function getEntity()
+        {
+            return new Comment();
+        }
+        
+        protected function getFilePath()
+        {
+            return sprintf('%s/../Fixtures/comments.yml', __DIR__);
+        }
+        
+        protected function getReferencePrefix()
+        {
+            return 'comment';
+        }
+        
+        public function getOrder()
+        {
+            // We want to load these fixtures after, since we depends on users fixtures
+            return 2;
+        }
+    }
+
+And the fixtures :
+
+    # src/Acme/DemoBundle/DataFixtures/Fixtures/comments.yml
+    comment1:
+        description: "my very nice comment"
+        @owner: user-alex
+    mycomment:
+        description: "I'm an elephant"
+        @owner: user-hubert
+    another-comment:
+        description: "Boo !!!!"
+        @owner: user-foo
+
+The concept is the following, to make understand that owner is a relationship, you have to prefix it with the "@" character.
+But, to link it to some entity, you need to know which one, this is the purpose of the getReferencePrefix() method, and then you need the key of the entity.
+To resume : @field: referencePrefix-entityKey
+
+### 3. Many-to-Many usage example
+
+This part will be quick since you can understand the mechanism, istead of a single string on a relationship, you can use a list.
+
+We now have a Tag entity related to comments by Many-to-Many relationship.
+We assume that you have the Tag entity created with correct parameters as well as the LoadTagData.
+
+All we have to do is switch order between comments and tags :
+* tags order is 2 (and prefix set to "tag")
+* comments order is 3
+
+Fixtures:
+
+    # src/Acme/DemoBundle/DataFixtures/Fixtures/tags.yml
+    tag1:
+        name: Tag 1
+    tag2:
+        name: Tag 2
+    tag3:
+        name: Tag 3
+
+    # src/Acme/DemoBundle/DataFixtures/Fixtures/comments.yml
+    comment1:
+        description: "my very nice comment"
+        @owner: user-alex
+        @tag:
+            - tag-tag1
+            - tag-tag2
+    mycomment:
+        description: "I'm an elephant"
+        @owner: user-hubert
+        @tag:
+            - tag-tag2
+            - tag-tag3
+    another-comment:
+        description: "Boo !!!!"
+        @owner: user-foo
+        @tag:
+            - tag-tag1
+            - tag-tag3
+
+The only thing to know about the many-to-many relationship is that it is not pluralized, you have to let it in it's singular context, the YamlFixture will use the "add" method.
