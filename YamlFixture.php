@@ -1,7 +1,7 @@
 <?php
 
 /*
- *  This file is part of the Creakiwi\YamlFixtures package.
+ *  This file is part of the Creakiwi\Component\YamlFixtures package.
  * 
  * (c) Alexandre ANDRE <alexandre@creakiwi.com>
  * 
@@ -17,52 +17,85 @@ use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * Description of YamlFixture
+ * A simple abstraction class to handle Yaml fixtures into doctrine fixtures interface
  *
  * @author Alexandre ANDRE
  */
 abstract class YamlFixture extends AbstractFixture implements OrderedFixtureInterface
 {
+    /**
+     * @return string The file path storing yaml fixtures
+     */
     abstract protected function getFilePath();
+
+    /**
+     * @return mixed A new entity related to data loaded
+     */
     abstract protected function getEntity();
+
+    /**
+     * @return string A prefix used to identify references
+     */
     abstract protected function getReferencePrefix();
 
     public function load(ObjectManager $manager)
     {
         $objects = Yaml::parse(file_get_contents($this->getFilePath()));
-        foreach ($objects as $object_key => $object) {
-            $reference  = sprintf('%s-%s', $this->getReferencePrefix(), $object_key);
-            $entity     = $this->getEntity();
-
-            foreach ($object as $key => &$value) {
-                $by_reference   = false;
-                $value          = $this->overrideValue($object, $value, $object_key);
-
-                if ($key[0] === '@') {
-                    $by_reference   = true;
-                    $key            = substr($key, 1);
-                }
-
-                $key = split('_', $key);
-                foreach ($key as &$part)
-                    $part = ucfirst($part);
-                $setter = sprintf('set%s', implode('', $key));
-
-                if ($by_reference === true) {
-                    if (is_array($value))
-                        $setter = sprintf('add%s', implode('', $key));
-
-                    $this->byReference($entity, $setter, $value);
-                }
-                else
-                    $entity->$setter($value);
-            }
-
-            $manager->persist($entity);
-            $this->addReference($reference, $entity);
+        foreach ($objects as $id => $object) {
+            $manager->persist($this->handleObject($object, $id));
         }
 
         $manager->flush();
+    }
+
+    /**
+     * 
+     * @param array $fields
+     * @param type $id
+     * @return mixed Fully initialized entity from fixtures
+     */
+    protected function handleObject(array $fields, $id)
+    {
+        $reference  = sprintf('%s-%s', $this->getReferencePrefix(), $id);
+        $entity     = $this->getEntity();
+
+        foreach ($fields as $field => &$value) {
+            $this->handleField($field, &$value, $fields);
+        }
+
+        $this->addReference($reference, $entity);
+
+        return $entity;
+    }
+
+    /**
+     * @param string $field
+     * @param mixed $value
+     */
+    protected function handleField($field, $value, array $fields)
+    {
+        //STOP HERE
+        $by_reference   = false;
+        $value          = $this->overrideValue($fields, $value, $field);
+
+        if ($key[0] === '@') {
+            $by_reference   = true;
+            $key            = substr($key, 1);
+        }
+
+        $key = split('_', $key);
+        foreach ($key as &$part)
+            $part = ucfirst($part);
+        $setter = sprintf('set%s', implode('', $key));
+
+        if ($by_reference === true) {
+            if (is_array($value))
+                $setter = sprintf('add%s', implode('', $key));
+
+            $this->byReference($entity, $setter, $value);
+        }
+        else
+            $entity->$setter($value);
     }
 
     protected function overrideValue($object, $value, $key)

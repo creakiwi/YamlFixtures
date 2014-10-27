@@ -16,13 +16,13 @@
         }
     ],
     "require": {
-        "symfony/yaml": "~2.5",
+        "symfony/yaml": "~2.3",
         "doctrine/doctrine-fixtures-bundle": "~2.2"
     },
     "autoload": {
         "psr-0": {
-            "Ck\\Component\\YamlFixtures": ""
+            "Creakiwi\\Component\\YamlFixtures": ""
         }
     },
-    "target-dir": "Ck/Component/YamlFixtures"
+    "target-dir": "Creakiwi/Component/YamlFixtures"
 }
