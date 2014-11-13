@@ -33,10 +33,21 @@ abstract class YamlFixture extends AbstractFixture implements OrderedFixtureInte
      */
     abstract protected function getEntity();
 
-    /**
-     * @return string A prefix used to identify references
-     */
-    abstract protected function getReferencePrefix();
+    public static function uncamelize($string, $separator = '_')
+    {
+        // http://stackoverflow.com/a/19533226
+        return ltrim(strtolower(preg_replace('/[A-Z]/', $separator.'$0', $string)), $separator);
+    }
+
+    public static function camelize($string, $separator = '_')
+    {
+        $parts = split($separator, $string);
+        foreach ($parts as &$part) {
+            $part = ucfirst($part);
+        }
+
+        return implode('', $parts);
+    }
 
     public function load(ObjectManager $manager)
     {
@@ -49,6 +60,7 @@ abstract class YamlFixture extends AbstractFixture implements OrderedFixtureInte
     }
 
     /**
+     * Handle the logic on one object
      * 
      * @param array $fields
      * @param type $id
@@ -60,7 +72,7 @@ abstract class YamlFixture extends AbstractFixture implements OrderedFixtureInte
         $entity     = $this->getEntity();
 
         foreach ($fields as $field => &$value) {
-            $this->handleField($field, &$value, $fields);
+            $this->handleField($id, $field, $value, $fields, $entity);
         }
 
         $this->addReference($reference, $entity);
@@ -69,57 +81,89 @@ abstract class YamlFixture extends AbstractFixture implements OrderedFixtureInte
     }
 
     /**
+     * Compute a prefix based on entity name (without namespace) used to identify references
+     * 
+     * @return string
+     */
+    protected function getReferencePrefix()
+    {
+        $class = new \ReflectionClass($this->getEntity());
+
+        return self::uncamelize($class->getShortName(), '-');
+    }
+
+    /**
+     * Handle the logic on one field
+     * 
      * @param string $field
      * @param mixed $value
      */
-    protected function handleField($field, $value, array $fields)
+    protected function handleField($id, &$field, $value, array $fields, $entity)
     {
-        //STOP HERE
-        $by_reference   = false;
-        $value          = $this->overrideValue($fields, $value, $field);
+        $this->overrideValue($id, &$value, $fields);
+        $setter = $this->defineSetter($field, $value);
 
-        if ($key[0] === '@') {
-            $by_reference   = true;
-            $key            = substr($key, 1);
-        }
-
-        $key = split('_', $key);
-        foreach ($key as &$part)
-            $part = ucfirst($part);
-        $setter = sprintf('set%s', implode('', $key));
-
-        if ($by_reference === true) {
-            if (is_array($value))
-                $setter = sprintf('add%s', implode('', $key));
-
+        if ($field[0] === '@') {
             $this->byReference($entity, $setter, $value);
-        }
-        else
+        } else {
             $entity->$setter($value);
+        }
     }
 
-    protected function overrideValue($object, $value, $key)
+    /**
+     * Replace keywords
+     * 
+     * @param string $id
+     * @param mixed $value
+     * @param array $fields
+     * @return mixed
+     */
+    protected function overrideValue($id, $value, array $fields)
     {
-        if (is_string($value) === false)
+        if (is_string($value) === false) {
             return $value;
+        }
 
-        if ($value === '%self%')
-            return $key;
-        else if ($value[0] === '%'
-            && substr($value, -1) === '%'
-            && isset($object[substr($value, 1, -1)]) === true)
-            return $object[substr($value, 1, -1)];
+        if ($value === '%self%') {
+            return $id;
+        } else if ($value[0] === '%' && substr($value, -1) === '%' && isset($fields[substr($value, 1, -1)]) === true) {
+            return $fields[substr($value, 1, -1)];
+        }
 
         return $value;
     }
 
+    /**
+     * Guess the appropriate setter for the current field
+     * 
+     * @param type $field
+     * @param type $value
+     * @return type
+     */
+    protected function defineSetter($field, $value)
+    {
+        if ($field[0] === '@') {
+            return sprintf('%s%s', self::camelize(substr($field, 1)), (is_array($value) === true) ? 'add' : 'set');
+        }
+
+        return sprintf('set%s', self::camelize($field));
+    }
+
+    /**
+     * Append values by reference (reference to an entity)
+     * 
+     * @param type $entity
+     * @param type $setter
+     * @param type $value
+     */
     protected function byReference($entity, $setter, $value)
     {
         if (is_array($value)) {
-            foreach ($value as $row)
+            foreach ($value as $row) {
                 $entity->$setter($this->getReference($row));
-        }
-        else
+            }
+        } else {
             $entity->$setter($this->getReference($value));
+        }
     }
 }
